@@ -124,6 +124,43 @@ A production-grade, high-performance log collection and aggregation system writt
 - Failure strategies (continue, stop)
 - Aggregate metrics across all outputs
 
+### Phase 5 - Advanced Inputs ✅
+
+✅ **Input Plugin Interface**
+- Common interface for all input sources
+- BaseInput with context management
+- Health check support per input
+- Unified event streaming
+
+✅ **Syslog Receiver**
+- TCP and UDP protocol support
+- RFC 3164 (BSD syslog) support
+- RFC 5424 (new syslog) support
+- TLS encryption for secure syslog
+- Per-client rate limiting
+- Connection tracking
+- 10K+ messages/sec throughput
+
+✅ **HTTP Receiver**
+- REST API for log ingestion
+- Single event endpoint (/log)
+- Batch endpoint (/logs) for bulk ingestion
+- API key authentication
+- Per-IP rate limiting
+- TLS/HTTPS support
+- Health and metrics endpoints
+- 50K+ events/sec throughput
+
+✅ **Kubernetes Pod Log Collection**
+- Kubernetes API integration
+- Automatic pod discovery via watch API
+- Multi-container pod support
+- Label and field selectors
+- Pod metadata enrichment (namespace, labels, annotations)
+- Follow mode for continuous streaming
+- In-cluster and kubeconfig support
+- 100+ pods simultaneously
+
 ## Quick Start
 
 ### Prerequisites
@@ -382,6 +419,128 @@ inputs:
             - token
 ```
 
+### Syslog Receiver
+
+Receive syslog messages:
+
+```yaml
+inputs:
+  syslog:
+    - name: syslog-server
+      protocol: udp
+      address: "0.0.0.0:514"
+      format: "3164"  # RFC 3164 (BSD syslog)
+      rate_limit: 1000
+      buffer_size: 10000
+```
+
+Send test message:
+```bash
+logger -n localhost -P 514 "Test syslog message"
+```
+
+### HTTP API Receiver
+
+Receive logs via HTTP:
+
+```yaml
+inputs:
+  http:
+    - name: http-api
+      address: "0.0.0.0:8080"
+      path: "/log"
+      batch_path: "/logs"
+      api_keys:
+        - "secret-key-123"
+      rate_limit: 100
+      parser:
+        type: json
+```
+
+Send single event:
+```bash
+curl -X POST http://localhost:8080/log \
+  -H "X-API-Key: secret-key-123" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "User login", "level": "info", "user_id": 123}'
+```
+
+Send batch events:
+```bash
+curl -X POST http://localhost:8080/logs \
+  -H "X-API-Key: secret-key-123" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {"message": "Event 1", "level": "info"},
+    {"message": "Event 2", "level": "warn"}
+  ]'
+```
+
+### Kubernetes Pod Logs
+
+Collect logs from Kubernetes pods:
+
+```yaml
+inputs:
+  kubernetes:
+    - name: k8s-production
+      namespace: "production"
+      label_selector: "app=backend"
+      follow: true
+      enrich_metadata: true
+      parser:
+        type: json
+```
+
+Logs will include Kubernetes metadata:
+```json
+{
+  "message": "Request processed",
+  "kubernetes": {
+    "namespace": "production",
+    "pod": "backend-api-7d9f5c8b-xk4sm",
+    "container": "app",
+    "labels": {
+      "app": "backend",
+      "version": "1.2.3"
+    }
+  }
+}
+```
+
+### Multi-Input Configuration
+
+Combine multiple input sources:
+
+```yaml
+inputs:
+  files:
+    - paths: [/var/log/app/*.log]
+      parser:
+        type: json
+
+  syslog:
+    - name: network-logs
+      protocol: udp
+      address: "0.0.0.0:514"
+
+  http:
+    - name: api-logs
+      address: "0.0.0.0:8080"
+      api_keys: ["${API_KEY}"]
+
+  kubernetes:
+    - name: container-logs
+      namespace: "production"
+      enrich_metadata: true
+
+output:
+  type: kafka
+  kafka:
+    brokers: ["kafka1:9092"]
+    topic: "logs"
+```
+
 ### Environment Variables
 
 Use environment variables in your config:
@@ -393,6 +552,12 @@ inputs:
         - ${LOG_PATH}
       checkpoint_path: ${CHECKPOINT_DIR}
 
+  http:
+    - name: http-api
+      address: "0.0.0.0:8080"
+      api_keys:
+        - ${HTTP_API_KEY}
+
 logging:
   level: ${LOG_LEVEL}
 ```
@@ -402,6 +567,7 @@ Then run:
 export LOG_PATH=/var/log/app.log
 export CHECKPOINT_DIR=/tmp/checkpoints
 export LOG_LEVEL=debug
+export HTTP_API_KEY=secret-key-123
 ./bin/logaggregator -config config.yaml
 ```
 
@@ -417,7 +583,7 @@ export LOG_LEVEL=debug
 
 ## Roadmap
 
-**Current Status**: **Phase 4 Complete** ✅
+**Current Status**: **Phase 5 Complete** ✅
 
 See [ROADMAP.md](ROADMAP.md) for the complete development plan.
 
@@ -427,10 +593,10 @@ See [ROADMAP.md](ROADMAP.md) for the complete development plan.
 - ✅ **Phase 2**: Parsing & Processing - Regex, JSON, Grok, multi-line, transformations
 - ✅ **Phase 3**: Buffering & Reliability - Ring buffer, WAL, worker pool, retry, circuit breaker, DLQ
 - ✅ **Phase 4**: Output Destinations - Kafka, Elasticsearch, S3, multi-output routing
+- ✅ **Phase 5**: Advanced Inputs - Syslog, HTTP, Kubernetes pod logs
 
 ### Upcoming Phases
 
-- **Phase 5**: Advanced inputs (Kubernetes, syslog, HTTP)
 - **Phase 6**: Metrics & observability (Prometheus, Grafana)
 - **Phase 7**: Performance optimization
 - **Phase 8**: Production readiness

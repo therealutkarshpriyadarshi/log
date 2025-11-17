@@ -1,0 +1,67 @@
+# Phase 5 Example Configuration: Multiple Input Sources
+#
+# This configuration demonstrates using multiple input types together
+
+inputs:
+  # File inputs (from Phase 1)
+  files:
+    - paths:
+        - /var/log/app/*.log
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+      parser:
+        type: json
+
+  # Syslog inputs (Phase 5)
+  syslog:
+    - name: syslog-server
+      protocol: both
+      address: "0.0.0.0:514"
+      format: "3164"
+      rate_limit: 1000
+      buffer_size: 10000
+
+  # HTTP inputs (Phase 5)
+  http:
+    - name: http-receiver
+      address: "0.0.0.0:8080"
+      path: "/log"
+      batch_path: "/logs"
+      api_keys:
+        - "${HTTP_API_KEY}"  # Use environment variable
+      rate_limit: 100
+      buffer_size: 10000
+      parser:
+        type: json
+        time_field: timestamp
+        level_field: level
+        message_field: message
+
+  # Kubernetes inputs (Phase 5)
+  kubernetes:
+    - name: k8s-production
+      namespace: "production"
+      label_selector: "tier=backend"
+      follow: true
+      enrich_metadata: true
+      buffer_size: 20000
+      parser:
+        type: json
+        time_field: time
+        level_field: level
+        message_field: msg
+      transforms:
+        - type: add
+          add:
+            cluster: "prod-us-east"
+            collected_by: "log-aggregator"
+
+logging:
+  level: info
+  format: json
+
+output:
+  type: stdout
+
+# Note: In production, you would typically output to Kafka, Elasticsearch, or S3
+# See config.yaml.phase4-* examples for output configurations

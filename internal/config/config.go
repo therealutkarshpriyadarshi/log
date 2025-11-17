@@ -24,7 +24,10 @@ type Config struct {
 
 // InputsConfig defines input sources
 type InputsConfig struct {
-	Files []FileInputConfig `yaml:"files"`
+	Files      []FileInputConfig       `yaml:"files,omitempty"`
+	Syslog     []SyslogInputConfig     `yaml:"syslog,omitempty"`
+	HTTP       []HTTPInputConfig       `yaml:"http,omitempty"`
+	Kubernetes []KubernetesInputConfig `yaml:"kubernetes,omitempty"`
 }
 
 // FileInputConfig defines file input configuration
@@ -284,13 +287,43 @@ func (c *Config) applyDefaults() {
 
 // Validate validates the configuration
 func (c *Config) Validate() error {
-	if len(c.Inputs.Files) == 0 {
-		return fmt.Errorf("at least one file input must be configured")
+	// Check that at least one input is configured
+	totalInputs := len(c.Inputs.Files) + len(c.Inputs.Syslog) + len(c.Inputs.HTTP) + len(c.Inputs.Kubernetes)
+	if totalInputs == 0 {
+		return fmt.Errorf("at least one input must be configured")
 	}
 
+	// Validate file inputs
 	for i, fileInput := range c.Inputs.Files {
 		if len(fileInput.Paths) == 0 {
 			return fmt.Errorf("file input %d has no paths configured", i)
+		}
+	}
+
+	// Validate syslog inputs
+	for i, syslogInput := range c.Inputs.Syslog {
+		if syslogInput.Name == "" {
+			return fmt.Errorf("syslog input %d has no name configured", i)
+		}
+		if syslogInput.Address == "" {
+			return fmt.Errorf("syslog input %d has no address configured", i)
+		}
+	}
+
+	// Validate HTTP inputs
+	for i, httpInput := range c.Inputs.HTTP {
+		if httpInput.Name == "" {
+			return fmt.Errorf("HTTP input %d has no name configured", i)
+		}
+		if httpInput.Address == "" {
+			return fmt.Errorf("HTTP input %d has no address configured", i)
+		}
+	}
+
+	// Validate Kubernetes inputs
+	for i, k8sInput := range c.Inputs.Kubernetes {
+		if k8sInput.Name == "" {
+			return fmt.Errorf("Kubernetes input %d has no name configured", i)
 		}
 	}
 
@@ -318,6 +351,57 @@ func LoadOrDefault(path string) *Config {
 		return DefaultConfig()
 	}
 	return cfg
+}
+
+// SyslogInputConfig defines syslog input configuration
+type SyslogInputConfig struct {
+	Name       string        `yaml:"name"`
+	Protocol   string        `yaml:"protocol"` // tcp, udp, both
+	Address    string        `yaml:"address"`
+	Format     string        `yaml:"format"` // 3164, 5424
+	TLSEnabled bool          `yaml:"tls_enabled,omitempty"`
+	TLSCert    string        `yaml:"tls_cert,omitempty"`
+	TLSKey     string        `yaml:"tls_key,omitempty"`
+	RateLimit  int           `yaml:"rate_limit,omitempty"`
+	BufferSize int           `yaml:"buffer_size,omitempty"`
+	Parser     *ParserConfig `yaml:"parser,omitempty"`
+	Transforms []TransformConfig `yaml:"transforms,omitempty"`
+}
+
+// HTTPInputConfig defines HTTP input configuration
+type HTTPInputConfig struct {
+	Name         string            `yaml:"name"`
+	Address      string            `yaml:"address"`
+	Path         string            `yaml:"path,omitempty"`
+	BatchPath    string            `yaml:"batch_path,omitempty"`
+	APIKeys      []string          `yaml:"api_keys,omitempty"`
+	RateLimit    int               `yaml:"rate_limit,omitempty"`
+	MaxBodySize  int64             `yaml:"max_body_size,omitempty"`
+	TLSEnabled   bool              `yaml:"tls_enabled,omitempty"`
+	TLSCert      string            `yaml:"tls_cert,omitempty"`
+	TLSKey       string            `yaml:"tls_key,omitempty"`
+	BufferSize   int               `yaml:"buffer_size,omitempty"`
+	ReadTimeout  time.Duration     `yaml:"read_timeout,omitempty"`
+	WriteTimeout time.Duration     `yaml:"write_timeout,omitempty"`
+	Parser       *ParserConfig     `yaml:"parser,omitempty"`
+	Transforms   []TransformConfig `yaml:"transforms,omitempty"`
+}
+
+// KubernetesInputConfig defines Kubernetes input configuration
+type KubernetesInputConfig struct {
+	Name             string            `yaml:"name"`
+	Kubeconfig       string            `yaml:"kubeconfig,omitempty"`
+	Namespace        string            `yaml:"namespace,omitempty"`
+	LabelSelector    string            `yaml:"label_selector,omitempty"`
+	FieldSelector    string            `yaml:"field_selector,omitempty"`
+	ContainerPattern string            `yaml:"container_pattern,omitempty"`
+	Follow           bool              `yaml:"follow"`
+	IncludePrevious  bool              `yaml:"include_previous,omitempty"`
+	TailLines        int64             `yaml:"tail_lines,omitempty"`
+	EnrichMetadata   bool              `yaml:"enrich_metadata"`
+	BufferSize       int               `yaml:"buffer_size,omitempty"`
+	Parser           *ParserConfig     `yaml:"parser,omitempty"`
+	Transforms       []TransformConfig `yaml:"transforms,omitempty"`
 }
 
 // DefaultConfig returns a default configuration
