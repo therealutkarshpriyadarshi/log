@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logaggregator
+  namespace: logging
+  labels:
+    app.kubernetes.io/name: logaggregator
+    app.kubernetes.io/component: log-collector
+    app.kubernetes.io/version: "0.2.0"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: logaggregator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: logaggregator
+        app.kubernetes.io/component: log-collector
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: logaggregator
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: logaggregator
+          image: logaggregator:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - -config
+            - /etc/logaggregator/config.yaml
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: syslog-udp
+              containerPort: 514
+              protocol: UDP
+            - name: syslog-tcp
+              containerPort: 514
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+            - name: health
+              containerPort: 8081
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: health
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/logaggregator
+              readOnly: true
+            - name: checkpoints
+              mountPath: /var/lib/logaggregator/checkpoints
+            - name: wal
+              mountPath: /var/lib/logaggregator/wal
+            - name: dlq
+              mountPath: /var/lib/logaggregator/dlq
+          env:
+            - name: GOMAXPROCS
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.cpu
+                  divisor: "1"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+      volumes:
+        - name: config
+          configMap:
+            name: logaggregator-config
+        - name: checkpoints
+          emptyDir: {}
+        - name: wal
+          emptyDir: {}
+        - name: dlq
+          emptyDir: {}
+      terminationGracePeriodSeconds: 30

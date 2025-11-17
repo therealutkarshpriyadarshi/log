@@ -1,0 +1,147 @@
+{{- if eq .Values.deploymentType "deployment" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "logaggregator.fullname" . }}
+  labels:
+    {{- include "logaggregator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: log-collector
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "logaggregator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: log-collector
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "logaggregator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: log-collector
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "logaggregator.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - -config
+            - /etc/logaggregator/config.yaml
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.ports.http }}
+              protocol: TCP
+            - name: syslog-udp
+              containerPort: {{ .Values.service.ports.syslogUdp }}
+              protocol: UDP
+            - name: syslog-tcp
+              containerPort: {{ .Values.service.ports.syslogTcp }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.service.ports.metrics }}
+              protocol: TCP
+            - name: health
+              containerPort: {{ .Values.service.ports.health }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/logaggregator
+              readOnly: true
+            - name: checkpoints
+              mountPath: /var/lib/logaggregator/checkpoints
+            - name: wal
+              mountPath: /var/lib/logaggregator/wal
+            - name: dlq
+              mountPath: /var/lib/logaggregator/dlq
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          env:
+            - name: GOMAXPROCS
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.cpu
+                  divisor: "1"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "logaggregator.fullname" . }}-config
+        - name: checkpoints
+          {{- if .Values.persistence.checkpoints.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "logaggregator.fullname" . }}-checkpoints
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: wal
+          {{- if .Values.persistence.wal.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "logaggregator.fullname" . }}-wal
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: dlq
+          {{- if .Values.persistence.dlq.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "logaggregator.fullname" . }}-dlq
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: 30
+{{- end }}
