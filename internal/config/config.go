@@ -10,9 +10,11 @@ import (
 
 // Config represents the main configuration
 type Config struct {
-	Inputs  InputsConfig  `yaml:"inputs"`
-	Logging LoggingConfig `yaml:"logging"`
-	Output  OutputConfig  `yaml:"output"`
+	Inputs     InputsConfig     `yaml:"inputs"`
+	Logging    LoggingConfig    `yaml:"logging"`
+	Output     OutputConfig     `yaml:"output"`
+	Parser     *ParserConfig    `yaml:"parser,omitempty"`
+	Transforms []TransformConfig `yaml:"transforms,omitempty"`
 }
 
 // InputsConfig defines input sources
@@ -22,9 +24,47 @@ type InputsConfig struct {
 
 // FileInputConfig defines file input configuration
 type FileInputConfig struct {
-	Paths            []string      `yaml:"paths"`
-	CheckpointPath   string        `yaml:"checkpoint_path"`
-	CheckpointInterval time.Duration `yaml:"checkpoint_interval"`
+	Paths              []string          `yaml:"paths"`
+	CheckpointPath     string            `yaml:"checkpoint_path"`
+	CheckpointInterval time.Duration     `yaml:"checkpoint_interval"`
+	Parser             *ParserConfig     `yaml:"parser,omitempty"`
+	Transforms         []TransformConfig `yaml:"transforms,omitempty"`
+}
+
+// ParserConfig holds parser configuration
+type ParserConfig struct {
+	Type         string            `yaml:"type"`
+	Pattern      string            `yaml:"pattern,omitempty"`
+	GrokPattern  string            `yaml:"grok_pattern,omitempty"`
+	TimeFormat   string            `yaml:"time_format,omitempty"`
+	TimeField    string            `yaml:"time_field,omitempty"`
+	LevelField   string            `yaml:"level_field,omitempty"`
+	MessageField string            `yaml:"message_field,omitempty"`
+	Multiline    *MultilineConfig  `yaml:"multiline,omitempty"`
+	CustomFields map[string]string `yaml:"custom_fields,omitempty"`
+}
+
+// MultilineConfig holds configuration for multi-line log handling
+type MultilineConfig struct {
+	Pattern  string `yaml:"pattern"`
+	Negate   bool   `yaml:"negate"`
+	Match    string `yaml:"match"`
+	MaxLines int    `yaml:"max_lines"`
+	Timeout  string `yaml:"timeout"`
+}
+
+// TransformConfig holds transformation configuration
+type TransformConfig struct {
+	Type          string            `yaml:"type"`
+	Fields        []string          `yaml:"fields,omitempty"`
+	IncludeFields []string          `yaml:"include_fields,omitempty"`
+	ExcludeFields []string          `yaml:"exclude_fields,omitempty"`
+	Rename        map[string]string `yaml:"rename,omitempty"`
+	Add           map[string]string `yaml:"add,omitempty"`
+	Patterns      []string          `yaml:"patterns,omitempty"`
+	FieldSplit    string            `yaml:"field_split,omitempty"`
+	ValueSplit    string            `yaml:"value_split,omitempty"`
+	Prefix        string            `yaml:"prefix,omitempty"`
 }
 
 // LoggingConfig defines logging configuration
