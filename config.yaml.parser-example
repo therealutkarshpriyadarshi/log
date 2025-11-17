@@ -1,0 +1,141 @@
+# Log Aggregator Configuration with Parser Examples
+
+# Example 1: JSON Parser
+inputs:
+  files:
+    - paths:
+        - /var/log/app.json
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+      parser:
+        type: json
+        time_field: timestamp
+        time_format: "2006-01-02T15:04:05Z"
+        level_field: level
+        message_field: message
+        custom_fields:
+          environment: production
+      transforms:
+        - type: filter
+          exclude_fields:
+            - password
+            - secret
+        - type: add
+          add:
+            app: myapp
+            version: "1.0.0"
+
+# Example 2: Regex Parser
+---
+inputs:
+  files:
+    - paths:
+        - /var/log/app.log
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+      parser:
+        type: regex
+        pattern: '^(?P<timestamp>\S+)\s+\[(?P<thread>\w+)\]\s+(?P<level>\w+)\s+(?P<logger>\S+)\s+-\s+(?P<message>.*)$'
+        time_field: timestamp
+        time_format: "2006-01-02T15:04:05Z"
+        level_field: level
+        message_field: message
+
+# Example 3: Grok Parser for Syslog
+---
+inputs:
+  files:
+    - paths:
+        - /var/log/syslog
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+      parser:
+        type: grok
+        grok_pattern: syslog
+
+# Example 4: Grok Parser for Java Logs
+---
+inputs:
+  files:
+    - paths:
+        - /var/log/java-app.log
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+      parser:
+        type: grok
+        grok_pattern: java
+
+# Example 5: Multi-line Parser for Stack Traces
+---
+inputs:
+  files:
+    - paths:
+        - /var/log/exceptions.log
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+      parser:
+        type: multiline
+        pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+        negate: true
+        match: after
+        multiline:
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+          negate: true
+          match: after
+          max_lines: 500
+          timeout: 5s
+
+# Example 6: Custom Grok Pattern
+---
+inputs:
+  files:
+    - paths:
+        - /var/log/custom.log
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+      parser:
+        type: grok
+        pattern: '%{IP:client_ip} - %{USER:user} \[%{DATA:timestamp}\] "%{WORD:method} %{NOTSPACE:request}" %{NUMBER:status}'
+
+# Example 7: Parser with Transformations
+---
+inputs:
+  files:
+    - paths:
+        - /var/log/app.log
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+      parser:
+        type: json
+        time_field: timestamp
+        level_field: level
+        message_field: msg
+      transforms:
+        # Extract key-value pairs from message
+        - type: kv
+          field_split: " "
+          value_split: "="
+          prefix: "kv_"
+        # Add custom fields
+        - type: add
+          add:
+            environment: production
+            datacenter: us-east-1
+        # Rename fields
+        - type: rename
+          rename:
+            kv_user: username
+            kv_request_id: trace_id
+        # Filter sensitive fields
+        - type: filter
+          exclude_fields:
+            - password
+            - api_key
+            - token
+
+logging:
+  level: info
+  format: json
+
+output:
+  type: stdout

@@ -2,7 +2,9 @@
 
 A production-grade, high-performance log collection and aggregation system written in Go. Designed to tail log files, handle rotation gracefully, and stream events to multiple destinations.
 
-## Features (Phase 1 - Foundation)
+## Features
+
+### Phase 1 - Foundation ✅
 
 ✅ **File Tailing with Rotation Handling**
 - Watch multiple log files simultaneously
@@ -26,6 +28,29 @@ A production-grade, high-performance log collection and aggregation system writt
 - Atomic checkpoint saves
 - Configurable checkpoint intervals
 - Recovery from crashes
+
+### Phase 2 - Parsing & Processing ✅
+
+✅ **Parser Engine**
+- Regex pattern matching with named capture groups
+- JSON log parsing with nested field support
+- Grok pattern library (50+ built-in patterns)
+- Multi-line log handling (stack traces, exceptions)
+- 7 pre-configured formats (syslog, apache, nginx, java, python, go)
+
+✅ **Field Extraction**
+- Timestamp parsing (9 common formats)
+- Log level detection and normalization
+- Key-value pair extraction
+- Nested field access
+- Custom field injection
+
+✅ **Transformation Pipeline**
+- Field filtering (include/exclude sensitive data)
+- Field renaming and mapping
+- Data type conversion
+- Field enrichment (add metadata)
+- Chainable transformations
 
 ## Quick Start
 
@@ -182,6 +207,109 @@ inputs:
       checkpoint_interval: 10s
 ```
 
+### Parse JSON Logs
+
+```yaml
+inputs:
+  files:
+    - paths:
+        - /var/log/app.json
+      checkpoint_path: /tmp/checkpoints
+      parser:
+        type: json
+        time_field: timestamp
+        level_field: level
+        message_field: msg
+      transforms:
+        - type: filter
+          exclude_fields:
+            - password
+            - api_key
+        - type: add
+          add:
+            environment: production
+```
+
+### Parse with Regex Pattern
+
+```yaml
+inputs:
+  files:
+    - paths:
+        - /var/log/app.log
+      checkpoint_path: /tmp/checkpoints
+      parser:
+        type: regex
+        pattern: '^(?P<timestamp>\S+)\s+\[(?P<thread>\w+)\]\s+(?P<level>\w+)\s+(?P<message>.*)$'
+        time_field: timestamp
+        time_format: "2006-01-02T15:04:05Z"
+        level_field: level
+        message_field: message
+```
+
+### Parse Syslog with Grok
+
+```yaml
+inputs:
+  files:
+    - paths:
+        - /var/log/syslog
+      checkpoint_path: /tmp/checkpoints
+      parser:
+        type: grok
+        grok_pattern: syslog
+```
+
+### Handle Multi-line Logs (Stack Traces)
+
+```yaml
+inputs:
+  files:
+    - paths:
+        - /var/log/exceptions.log
+      checkpoint_path: /tmp/checkpoints
+      parser:
+        type: multiline
+        multiline:
+          pattern: '^\d{4}-\d{2}-\d{2}'
+          negate: true
+          match: after
+          max_lines: 500
+          timeout: 5s
+```
+
+### Full Pipeline with Transformations
+
+```yaml
+inputs:
+  files:
+    - paths:
+        - /var/log/app.log
+      checkpoint_path: /tmp/checkpoints
+      parser:
+        type: json
+      transforms:
+        # Extract key-value pairs
+        - type: kv
+          field_split: " "
+          value_split: "="
+          prefix: "kv_"
+        # Add metadata
+        - type: add
+          add:
+            datacenter: us-east-1
+            environment: production
+        # Rename fields
+        - type: rename
+          rename:
+            kv_user: username
+        # Filter sensitive data
+        - type: filter
+          exclude_fields:
+            - password
+            - token
+```
+
 ### Environment Variables
 
 Use environment variables in your config:
@@ -207,20 +335,27 @@ export LOG_LEVEL=debug
 
 ## Performance Targets
 
-| Metric | Phase 1 | Final Target |
-|--------|---------|--------------|
-| Throughput | 10K events/sec | 100K-500K events/sec |
+| Metric | Phase 1-2 Current | Final Target |
+|--------|-------------------|--------------|
+| Throughput | 50-100K events/sec (parsed) | 100K-500K events/sec |
 | Files | 10 concurrent | 100+ concurrent |
+| Parsing Speed | 50-100K lines/sec | 100K+ lines/sec |
 | Latency | N/A | <100ms p99 |
 | Memory | <100MB | <500MB at 100K events/sec |
 
 ## Roadmap
 
-This is **Phase 1** of the project. See [ROADMAP.md](ROADMAP.md) for the complete development plan.
+**Current Status**: **Phase 2 Complete** ✅
+
+See [ROADMAP.md](ROADMAP.md) for the complete development plan.
+
+### Completed Phases
+
+- ✅ **Phase 1**: Foundation - File tailing, checkpoints, configuration
+- ✅ **Phase 2**: Parsing & Processing - Regex, JSON, Grok, multi-line, transformations
 
 ### Upcoming Phases
 
-- **Phase 2**: Parser engine (regex, grok, JSON parsing)
 - **Phase 3**: Buffering & reliability (WAL, backpressure)
 - **Phase 4**: Output destinations (Kafka, Elasticsearch, S3)
 - **Phase 5**: Advanced inputs (Kubernetes, syslog, HTTP)
