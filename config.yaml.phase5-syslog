@@ -1,0 +1,38 @@
+# Phase 5 Example Configuration: Syslog Receiver
+#
+# This configuration demonstrates how to receive syslog messages via TCP and UDP
+
+inputs:
+  # Syslog receiver configuration
+  syslog:
+    - name: syslog-udp
+      protocol: udp
+      address: "0.0.0.0:514"
+      format: "3164"  # BSD syslog format (RFC 3164)
+      rate_limit: 1000  # Max 1000 messages per second per client
+      buffer_size: 10000
+
+    - name: syslog-tcp
+      protocol: tcp
+      address: "0.0.0.0:1514"
+      format: "5424"  # New syslog format (RFC 5424)
+      rate_limit: 1000
+      buffer_size: 10000
+      # Optional: Enable TLS for secure syslog
+      # tls_enabled: true
+      # tls_cert: /path/to/cert.pem
+      # tls_key: /path/to/key.pem
+
+    - name: syslog-both
+      protocol: both  # Listen on both TCP and UDP
+      address: "0.0.0.0:2514"
+      format: "3164"
+      rate_limit: 500
+      buffer_size: 5000
+
+logging:
+  level: info
+  format: json
+
+output:
+  type: stdout

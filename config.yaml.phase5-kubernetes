@@ -1,0 +1,57 @@
+# Phase 5 Example Configuration: Kubernetes Pod Log Collection
+#
+# This configuration demonstrates how to collect logs from Kubernetes pods
+
+inputs:
+  # Kubernetes log collection configuration
+  kubernetes:
+    - name: k8s-all-pods
+      # kubeconfig: /path/to/kubeconfig  # Omit for in-cluster config
+      # namespace: ""  # Empty means all namespaces
+      follow: true
+      enrich_metadata: true
+      buffer_size: 20000
+      tail_lines: 100  # Start with last 100 lines
+
+      # Optional: Parse JSON container logs
+      parser:
+        type: json
+        time_field: time
+        level_field: level
+        message_field: msg
+
+      # Optional: Add custom fields
+      transforms:
+        - type: add
+          add:
+            cluster: "production"
+            region: "us-east-1"
+
+    - name: k8s-app-namespace
+      namespace: "app-production"
+      label_selector: "app=myapp"
+      follow: true
+      enrich_metadata: true
+      buffer_size: 10000
+
+    - name: k8s-system-pods
+      namespace: "kube-system"
+      label_selector: "component=kube-apiserver"
+      container_pattern: "kube-apiserver"  # Only collect from specific containers
+      follow: true
+      enrich_metadata: false  # Minimal metadata
+      buffer_size: 5000
+
+    - name: k8s-failed-pods
+      field_selector: "status.phase=Failed"
+      include_previous: true  # Include logs from previous container instances
+      follow: false
+      enrich_metadata: true
+      buffer_size: 1000
+
+logging:
+  level: info
+  format: json
+
+output:
+  type: stdout
