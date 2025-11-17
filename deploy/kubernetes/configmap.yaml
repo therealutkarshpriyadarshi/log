@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logaggregator-config
+  namespace: logging
+  labels:
+    app.kubernetes.io/name: logaggregator
+data:
+  config.yaml: |
+    # Log Aggregator Configuration
+    inputs:
+      files:
+        - paths:
+            - /var/log/pods/**/*.log
+          checkpoint_path: /var/lib/logaggregator/checkpoints
+          checkpoint_interval: 5s
+          parser:
+            type: json
+            time_field: timestamp
+            level_field: level
+            message_field: message
+
+    logging:
+      level: info
+      format: json
+
+    buffer:
+      type: memory
+      size: 524288  # 512K events
+      backpressure_strategy: drop
+
+    worker_pool:
+      num_workers: 8
+      queue_size: 10000
+
+    metrics:
+      enabled: true
+      address: "0.0.0.0:9090"
+      path: /metrics
+
+    health:
+      enabled: true
+      address: "0.0.0.0:8081"
+      liveness_path: /health
+      readiness_path: /ready
+
+    performance:
+      enable_pooling: true
+      gomaxprocs: 0
+      gc_percent: 100
+      channel_buffer_size: 1000
+
+    output:
+      type: stdout

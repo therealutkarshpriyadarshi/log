@@ -1,0 +1,215 @@
+# Default values for logaggregator
+
+# Deployment type: deployment or daemonset
+deploymentType: deployment
+
+image:
+  repository: logaggregator
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# ServiceAccount configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# RBAC configuration
+rbac:
+  create: true
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Deployment configuration
+replicaCount: 3
+
+# DaemonSet configuration
+daemonset:
+  enabled: false
+  hostNetwork: true
+  tolerations:
+    - effect: NoSchedule
+      operator: Exists
+    - effect: NoExecute
+      operator: Exists
+
+# Service configuration
+service:
+  type: ClusterIP
+  ports:
+    http: 8080
+    syslogUdp: 514
+    syslogTcp: 514
+    metrics: 9090
+    health: 8081
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: logaggregator.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Resource limits and requests
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+# Node resources for DaemonSet
+nodeResources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# Autoscaling configuration
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Liveness probe
+livenessProbe:
+  httpGet:
+    path: /health
+    port: health
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Readiness probe
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: health
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Volumes
+persistence:
+  checkpoints:
+    enabled: true
+    storageClass: ""
+    size: 1Gi
+  wal:
+    enabled: true
+    storageClass: ""
+    size: 5Gi
+  dlq:
+    enabled: true
+    storageClass: ""
+    size: 2Gi
+
+# Configuration
+config:
+  inputs:
+    files:
+      - paths:
+          - /var/log/pods/**/*.log
+        checkpoint_path: /var/lib/logaggregator/checkpoints
+        checkpoint_interval: 5s
+        parser:
+          type: json
+          time_field: timestamp
+          level_field: level
+          message_field: message
+
+  logging:
+    level: info
+    format: json
+
+  buffer:
+    type: memory
+    size: 524288
+    backpressure_strategy: drop
+
+  worker_pool:
+    num_workers: 8
+    queue_size: 10000
+
+  metrics:
+    enabled: true
+    address: "0.0.0.0:9090"
+    path: /metrics
+
+  health:
+    enabled: true
+    address: "0.0.0.0:8081"
+    liveness_path: /health
+    readiness_path: /ready
+
+  performance:
+    enable_pooling: true
+    gomaxprocs: 0
+    gc_percent: 100
+    channel_buffer_size: 1000
+
+  output:
+    type: stdout
+
+# Prometheus monitoring
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+  prometheus.io/path: "/metrics"
+
+# Pod labels
+podLabels: {}
+
+# Environment variables
+env: []
+
+# Extra volumes
+extraVolumes: []
+
+# Extra volume mounts
+extraVolumeMounts: []

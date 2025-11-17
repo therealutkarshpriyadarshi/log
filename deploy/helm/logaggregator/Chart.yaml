@@ -1,0 +1,17 @@
+apiVersion: v2
+name: logaggregator
+description: A high-performance log collection and aggregation system
+type: application
+version: 0.2.0
+appVersion: "0.2.0"
+home: https://github.com/therealutkarshpriyadarshi/log
+sources:
+  - https://github.com/therealutkarshpriyadarshi/log
+keywords:
+  - logging
+  - log-aggregation
+  - observability
+  - monitoring
+maintainers:
+  - name: logaggregator
+    url: https://github.com/therealutkarshpriyadarshi/log
