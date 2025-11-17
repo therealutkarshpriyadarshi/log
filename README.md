@@ -52,6 +52,37 @@ A production-grade, high-performance log collection and aggregation system writt
 - Field enrichment (add metadata)
 - Chainable transformations
 
+### Phase 3 - Buffering & Reliability ✅
+
+✅ **Memory-Backed Ring Buffer**
+- Lock-free circular buffer implementation
+- Configurable buffer size (power-of-2 optimization)
+- Three backpressure strategies (block, drop, sample)
+- Real-time metrics (utilization, drops, throughput)
+- Thread-safe concurrent access
+
+✅ **Write-Ahead Log (WAL)**
+- Disk-backed WAL for durability guarantees
+- Segment-based log files with automatic rotation
+- Crash recovery and replay
+- Compaction and cleanup policies
+- Zero data loss on restarts
+
+✅ **Worker Pool**
+- Configurable number of workers
+- Dynamic scaling (add/remove workers)
+- Job timeout support
+- Per-worker metrics
+- Work stealing queue support
+
+✅ **Error Handling & Retry**
+- Exponential backoff retry logic
+- Configurable max retries and backoff
+- Optional jitter to prevent thundering herd
+- Circuit breaker pattern (Closed/Open/Half-Open states)
+- Dead letter queue for failed events
+- Error rate limiting
+
 ## Quick Start
 
 ### Prerequisites
@@ -345,7 +376,7 @@ export LOG_LEVEL=debug
 
 ## Roadmap
 
-**Current Status**: **Phase 2 Complete** ✅
+**Current Status**: **Phase 3 Complete** ✅
 
 See [ROADMAP.md](ROADMAP.md) for the complete development plan.
 
@@ -353,10 +384,10 @@ See [ROADMAP.md](ROADMAP.md) for the complete development plan.
 
 - ✅ **Phase 1**: Foundation - File tailing, checkpoints, configuration
 - ✅ **Phase 2**: Parsing & Processing - Regex, JSON, Grok, multi-line, transformations
+- ✅ **Phase 3**: Buffering & Reliability - Ring buffer, WAL, worker pool, retry, circuit breaker, DLQ
 
 ### Upcoming Phases
 
-- **Phase 3**: Buffering & reliability (WAL, backpressure)
 - **Phase 4**: Output destinations (Kafka, Elasticsearch, S3)
 - **Phase 5**: Advanced inputs (Kubernetes, syslog, HTTP)
 - **Phase 6**: Metrics & observability (Prometheus, Grafana)
