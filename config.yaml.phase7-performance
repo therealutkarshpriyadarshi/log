@@ -1,0 +1,107 @@
+# Phase 7: Performance Optimization Configuration Example
+
+# Performance tuning settings
+performance:
+  enable_pooling: true          # Enable object pooling to reduce allocations
+  gomaxprocs: 0                 # 0 = use all available CPUs
+  gc_percent: 100               # GC target percentage (default 100, lower = more frequent GC)
+  channel_buffer_size: 1000     # Buffer size for internal channels
+  max_concurrent_reads: 100     # Maximum concurrent file reads
+
+# Profiling configuration
+profiling:
+  enabled: true
+  address: "localhost:6060"     # pprof HTTP endpoint
+  cpu_profile: ""               # Optional: path to save CPU profile on shutdown
+  mem_profile: ""               # Optional: path to save memory profile on shutdown
+  block_profile: true           # Enable block profiling
+  mutex_profile: true           # Enable mutex profiling
+  goroutine_threshold: 10000    # Warn if goroutines exceed this number
+
+# Input sources
+inputs:
+  files:
+    - paths:
+        - /var/log/app/*.log
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+      parser:
+        type: json
+        time_field: timestamp
+        level_field: level
+        message_field: message
+
+# Ring buffer configuration (optimized for high throughput)
+buffer:
+  size: 1048576                 # 1M events (power of 2)
+  backpressure_strategy: drop   # drop for highest throughput
+  sample_rate: 10
+  block_timeout: 5s
+
+# Worker pool configuration
+worker_pool:
+  worker_count: 8               # Adjust based on CPU cores
+  job_timeout: 30s
+  queue_size: 10000
+
+# WAL configuration
+wal:
+  enabled: true
+  directory: /tmp/logaggregator/wal
+  segment_size: 67108864        # 64MB segments
+  sync_on_write: false          # Disable for higher throughput (less durability)
+  compression: snappy           # Fast compression
+  max_segments: 100
+
+# Reliability configuration
+reliability:
+  max_retries: 3
+  initial_backoff: 1s
+  max_backoff: 30s
+  backoff_multiplier: 2
+  jitter: true
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 5
+    success_threshold: 2
+    timeout: 60s
+
+# Output configuration
+output:
+  type: kafka
+  kafka:
+    brokers:
+      - localhost:9092
+    topic: logs
+    partition_strategy: hash
+    compression: snappy
+    batch_size: 1000            # Larger batches for better throughput
+    batch_timeout: 100ms        # Lower timeout for lower latency
+    max_message_bytes: 1048576
+    required_acks: 1            # 1 for better performance (vs -1 for durability)
+    async: true
+
+# Metrics configuration
+metrics:
+  enabled: true
+  address: "0.0.0.0:9090"
+  path: "/metrics"
+
+# Health check configuration
+health:
+  enabled: true
+  address: "0.0.0.0:8081"
+  liveness_path: "/health/live"
+  readiness_path: "/health/ready"
+  timeout: 5s
+
+# Tracing configuration
+tracing:
+  enabled: true
+  endpoint: "localhost:4317"
+  sample_rate: 0.01             # 1% sampling for lower overhead
+
+# Logging configuration
+logging:
+  level: info                   # Use warn or error in production for better performance
+  format: json
