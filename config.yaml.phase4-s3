@@ -1,0 +1,60 @@
+# Phase 4: S3 Output Configuration Example
+
+inputs:
+  files:
+    - paths:
+        - /var/log/app.log
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+
+logging:
+  level: info
+  format: json
+
+# S3 Output Configuration
+output:
+  type: s3
+  s3:
+    bucket: my-logs-bucket
+    region: us-east-1
+    prefix: logs/
+    key_template: "{{.Year}}/{{.Month}}/{{.Day}}/{{.Hour}}/{{.Timestamp}}.json"
+    storage_class: STANDARD  # STANDARD, GLACIER, DEEP_ARCHIVE, etc.
+    server_side_encryption: AES256  # AES256, aws:kms
+    acl: private  # private, public-read, etc.
+    compression: gzip  # none, gzip, snappy
+    # Batching - combine multiple events into one S3 object
+    batch_size: 1000
+    batch_timeout: 5m
+    flush_interval: 1m
+    # S3-compatible endpoints (e.g., MinIO)
+    # endpoint: http://localhost:9000
+    # use_path_style: true
+
+buffer:
+  type: memory
+  size: 10000
+  backpressure_strategy: block
+
+wal:
+  enabled: true
+  dir: /var/lib/logaggregator/wal
+  segment_size: 67108864
+
+worker_pool:
+  num_workers: 4
+  queue_size: 2000
+
+reliability:
+  retry:
+    max_retries: 5
+    initial_backoff: 1s
+    max_backoff: 60s
+    multiplier: 2.0
+    jitter: true
+
+dead_letter:
+  enabled: true
+  dir: /var/lib/logaggregator/dlq
+  max_size: 10000
+  max_age: 24h
