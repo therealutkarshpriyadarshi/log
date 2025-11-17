@@ -1,0 +1,17 @@
+# Log Aggregator Configuration Example
+
+inputs:
+  files:
+    - paths:
+        - /var/log/app.log
+        - /var/log/app/*.log
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+
+logging:
+  level: info      # debug, info, warn, error, fatal
+  format: json     # json or console
+
+output:
+  type: stdout     # stdout, file, kafka, elasticsearch, s3 (future)
+  path: ""         # path for file output
