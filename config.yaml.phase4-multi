@@ -1,0 +1,97 @@
+# Phase 4: Multi-Output Configuration Example
+# Send logs to multiple destinations simultaneously
+
+inputs:
+  files:
+    - paths:
+        - /var/log/app.log
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+      parser:
+        type: json
+
+logging:
+  level: info
+  format: json
+
+# Multi-Output Configuration - Fan out to multiple destinations
+output:
+  type: multi
+  multi:
+    # Failure strategy: continue (send to all, ignore failures) or stop (fail fast)
+    failure_strategy: continue
+    # Parallel: send to all outputs in parallel (true) or sequential (false)
+    parallel: true
+
+    outputs:
+      # Output 1: Kafka for real-time streaming
+      - name: kafka-realtime
+        type: kafka
+        kafka:
+          brokers:
+            - localhost:9092
+          topic: logs-realtime
+          compression_codec: snappy
+          batch_size: 100
+          batch_timeout: 1s
+
+      # Output 2: Elasticsearch for search and analytics
+      - name: elasticsearch-search
+        type: elasticsearch
+        elasticsearch:
+          addresses:
+            - http://localhost:9200
+          index: logs
+          index_rotation: daily
+          batch_size: 500
+          batch_timeout: 5s
+
+      # Output 3: S3 for long-term archival
+      - name: s3-archive
+        type: s3
+        s3:
+          bucket: logs-archive
+          region: us-east-1
+          prefix: archive/
+          key_template: "{{.Year}}/{{.Month}}/{{.Day}}/{{.Timestamp}}.json.gz"
+          compression: gzip
+          batch_size: 5000
+          batch_timeout: 15m
+          storage_class: GLACIER
+
+buffer:
+  type: memory
+  size: 20000
+  backpressure_strategy: block
+  block_timeout: 10s
+
+wal:
+  enabled: true
+  dir: /var/lib/logaggregator/wal
+  segment_size: 134217728  # 128 MB
+  max_segments: 50
+
+worker_pool:
+  num_workers: 16
+  queue_size: 10000
+  job_timeout: 60s
+
+reliability:
+  retry:
+    max_retries: 3
+    initial_backoff: 100ms
+    max_backoff: 30s
+    multiplier: 2.0
+    jitter: true
+  circuit_breaker:
+    max_requests: 20
+    interval: 60s
+    timeout: 60s
+    failure_threshold: 10
+
+dead_letter:
+  enabled: true
+  dir: /var/lib/logaggregator/dlq
+  max_size: 50000
+  max_age: 48h
+  flush_interval: 10s

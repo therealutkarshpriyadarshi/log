@@ -1,0 +1,72 @@
+# Phase 4: Elasticsearch Output Configuration Example
+
+inputs:
+  files:
+    - paths:
+        - /var/log/app.log
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+      parser:
+        type: json
+
+logging:
+  level: info
+  format: json
+
+# Elasticsearch Output Configuration
+output:
+  type: elasticsearch
+  elasticsearch:
+    addresses:
+      - http://localhost:9200
+      - http://localhost:9201
+    index: logs  # Base index name
+    index_rotation: daily  # none, daily, weekly, monthly, yearly
+    index_timestamp_field: timestamp
+    pipeline: ""  # Optional ingest pipeline
+    # Authentication
+    username: elastic
+    password: changeme
+    # OR use Cloud ID
+    # cloud_id: ""
+    # OR use API Key
+    # api_key: ""
+    # Batching
+    batch_size: 500
+    batch_timeout: 5s
+    flush_interval: 1s
+    bulk_workers: 2
+    max_retries: 3
+
+buffer:
+  type: memory
+  size: 10000
+  backpressure_strategy: block
+
+wal:
+  enabled: true
+  dir: /var/lib/logaggregator/wal
+  segment_size: 67108864
+
+worker_pool:
+  num_workers: 4
+  queue_size: 2000
+
+reliability:
+  retry:
+    max_retries: 3
+    initial_backoff: 100ms
+    max_backoff: 30s
+    multiplier: 2.0
+    jitter: true
+  circuit_breaker:
+    max_requests: 10
+    interval: 60s
+    timeout: 60s
+    failure_threshold: 5
+
+dead_letter:
+  enabled: true
+  dir: /var/lib/logaggregator/dlq
+  max_size: 10000
+  max_age: 24h

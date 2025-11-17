@@ -80,8 +80,91 @@ type LoggingConfig struct {
 
 // OutputConfig defines output configuration
 type OutputConfig struct {
-	Type string `yaml:"type"` // stdout, file, kafka, etc.
+	Type string `yaml:"type"` // stdout, file, kafka, elasticsearch, s3, multi
 	Path string `yaml:"path,omitempty"`
+
+	// Kafka output configuration
+	Kafka *KafkaOutputConfig `yaml:"kafka,omitempty"`
+
+	// Elasticsearch output configuration
+	Elasticsearch *ElasticsearchOutputConfig `yaml:"elasticsearch,omitempty"`
+
+	// S3 output configuration
+	S3 *S3OutputConfig `yaml:"s3,omitempty"`
+
+	// Multi-output configuration
+	Multi *MultiOutputConfig `yaml:"multi,omitempty"`
+}
+
+// KafkaOutputConfig holds Kafka-specific configuration
+type KafkaOutputConfig struct {
+	Brokers           []string      `yaml:"brokers"`
+	Topic             string        `yaml:"topic"`
+	TopicField        string        `yaml:"topic_field,omitempty"`
+	PartitionKey      string        `yaml:"partition_key,omitempty"`
+	PartitionStrategy string        `yaml:"partition_strategy,omitempty"`
+	RequiredAcks      int16         `yaml:"required_acks,omitempty"`
+	CompressionCodec  string        `yaml:"compression_codec,omitempty"`
+	MaxMessageBytes   int           `yaml:"max_message_bytes,omitempty"`
+	BatchSize         int           `yaml:"batch_size,omitempty"`
+	BatchTimeout      time.Duration `yaml:"batch_timeout,omitempty"`
+	FlushInterval     time.Duration `yaml:"flush_interval,omitempty"`
+	SASLEnabled       bool          `yaml:"sasl_enabled,omitempty"`
+	SASLMechanism     string        `yaml:"sasl_mechanism,omitempty"`
+	SASLUsername      string        `yaml:"sasl_username,omitempty"`
+	SASLPassword      string        `yaml:"sasl_password,omitempty"`
+	EnableTLS         bool          `yaml:"enable_tls,omitempty"`
+}
+
+// ElasticsearchOutputConfig holds Elasticsearch-specific configuration
+type ElasticsearchOutputConfig struct {
+	Addresses           []string      `yaml:"addresses"`
+	Index               string        `yaml:"index"`
+	IndexRotation       string        `yaml:"index_rotation,omitempty"`
+	IndexTimestampField string        `yaml:"index_timestamp_field,omitempty"`
+	Pipeline            string        `yaml:"pipeline,omitempty"`
+	Username            string        `yaml:"username,omitempty"`
+	Password            string        `yaml:"password,omitempty"`
+	CloudID             string        `yaml:"cloud_id,omitempty"`
+	APIKey              string        `yaml:"api_key,omitempty"`
+	BatchSize           int           `yaml:"batch_size,omitempty"`
+	BatchTimeout        time.Duration `yaml:"batch_timeout,omitempty"`
+	FlushInterval       time.Duration `yaml:"flush_interval,omitempty"`
+	BulkWorkers         int           `yaml:"bulk_workers,omitempty"`
+	MaxRetries          int           `yaml:"max_retries,omitempty"`
+}
+
+// S3OutputConfig holds S3-specific configuration
+type S3OutputConfig struct {
+	Bucket               string        `yaml:"bucket"`
+	Region               string        `yaml:"region"`
+	Prefix               string        `yaml:"prefix,omitempty"`
+	KeyTemplate          string        `yaml:"key_template,omitempty"`
+	StorageClass         string        `yaml:"storage_class,omitempty"`
+	ServerSideEncryption string        `yaml:"server_side_encryption,omitempty"`
+	ACL                  string        `yaml:"acl,omitempty"`
+	Compression          string        `yaml:"compression,omitempty"`
+	BatchSize            int           `yaml:"batch_size,omitempty"`
+	BatchTimeout         time.Duration `yaml:"batch_timeout,omitempty"`
+	FlushInterval        time.Duration `yaml:"flush_interval,omitempty"`
+	Endpoint             string        `yaml:"endpoint,omitempty"`
+	UsePathStyle         bool          `yaml:"use_path_style,omitempty"`
+}
+
+// MultiOutputConfig holds configuration for multiple outputs
+type MultiOutputConfig struct {
+	Outputs         []OutputDefinition `yaml:"outputs"`
+	FailureStrategy string             `yaml:"failure_strategy,omitempty"`
+	Parallel        bool               `yaml:"parallel,omitempty"`
+}
+
+// OutputDefinition defines a single output in multi-output mode
+type OutputDefinition struct {
+	Name          string                      `yaml:"name"`
+	Type          string                      `yaml:"type"`
+	Kafka         *KafkaOutputConfig         `yaml:"kafka,omitempty"`
+	Elasticsearch *ElasticsearchOutputConfig `yaml:"elasticsearch,omitempty"`
+	S3            *S3OutputConfig            `yaml:"s3,omitempty"`
 }
 
 // BufferConfig holds buffer configuration

@@ -1,0 +1,87 @@
+# Phase 4: Kafka Output Configuration Example
+
+inputs:
+  files:
+    - paths:
+        - /var/log/app.log
+        - /var/log/nginx/access.log
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+      parser:
+        type: json
+        time_field: timestamp
+        level_field: level
+        message_field: msg
+
+logging:
+  level: info
+  format: json
+
+# Kafka Output Configuration
+output:
+  type: kafka
+  kafka:
+    brokers:
+      - localhost:9092
+      - localhost:9093
+      - localhost:9094
+    topic: logs
+    topic_field: service  # Dynamic topic routing based on 'service' field
+    partition_key: user_id  # Partition by user_id field
+    partition_strategy: hash  # hash, random, round-robin, manual
+    required_acks: 1  # 0=none, 1=leader, -1=all replicas
+    compression_codec: gzip  # none, gzip, snappy, lz4, zstd
+    max_message_bytes: 1000000  # 1MB
+    batch_size: 100
+    batch_timeout: 5s
+    flush_interval: 1s
+    # SASL Authentication (optional)
+    sasl_enabled: false
+    sasl_mechanism: SCRAM-SHA-256  # PLAIN, SCRAM-SHA-256, SCRAM-SHA-512
+    sasl_username: ""
+    sasl_password: ""
+    # TLS (optional)
+    enable_tls: false
+
+# Buffer configuration for high throughput
+buffer:
+  type: memory
+  size: 10000
+  backpressure_strategy: block
+  block_timeout: 5s
+
+# WAL for durability
+wal:
+  enabled: true
+  dir: /var/lib/logaggregator/wal
+  segment_size: 67108864  # 64 MB
+  max_segments: 100
+  sync_interval: 1s
+
+# Worker pool for concurrent processing
+worker_pool:
+  num_workers: 8
+  queue_size: 5000
+  job_timeout: 30s
+
+# Reliability configuration
+reliability:
+  retry:
+    max_retries: 3
+    initial_backoff: 100ms
+    max_backoff: 30s
+    multiplier: 2.0
+    jitter: true
+  circuit_breaker:
+    max_requests: 10
+    interval: 60s
+    timeout: 60s
+    failure_threshold: 5
+
+# Dead letter queue for failed events
+dead_letter:
+  enabled: true
+  dir: /var/lib/logaggregator/dlq
+  max_size: 10000
+  max_age: 24h
+  flush_interval: 5s
