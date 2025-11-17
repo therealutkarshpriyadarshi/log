@@ -23,6 +23,8 @@ type Config struct {
 	Metrics      *MetricsConfig     `yaml:"metrics,omitempty"`
 	Health       *HealthConfig      `yaml:"health,omitempty"`
 	Tracing      *TracingConfig     `yaml:"tracing,omitempty"`
+	Profiling    *ProfilingConfig   `yaml:"profiling,omitempty"`
+	Performance  *PerformanceConfig `yaml:"performance,omitempty"`
 }
 
 // InputsConfig defines input sources
@@ -273,6 +275,26 @@ type TracingConfig struct {
 	Endpoint     string  `yaml:"endpoint,omitempty"`
 	SampleRate   float64 `yaml:"sample_rate,omitempty"`
 	EnableStdout bool    `yaml:"enable_stdout,omitempty"`
+}
+
+// ProfilingConfig holds profiling configuration
+type ProfilingConfig struct {
+	Enabled            bool   `yaml:"enabled"`
+	Address            string `yaml:"address"`
+	CPUProfilePath     string `yaml:"cpu_profile,omitempty"`
+	MemProfilePath     string `yaml:"mem_profile,omitempty"`
+	BlockProfile       bool   `yaml:"block_profile"`
+	MutexProfile       bool   `yaml:"mutex_profile"`
+	GoroutineThreshold int    `yaml:"goroutine_threshold"`
+}
+
+// PerformanceConfig holds performance tuning configuration
+type PerformanceConfig struct {
+	EnablePooling      bool `yaml:"enable_pooling"`
+	GOMAXPROCS         int  `yaml:"gomaxprocs"`
+	GCPercent          int  `yaml:"gc_percent"`
+	ChannelBufferSize  int  `yaml:"channel_buffer_size"`
+	MaxConcurrentReads int  `yaml:"max_concurrent_reads"`
 }
 
 // Default values

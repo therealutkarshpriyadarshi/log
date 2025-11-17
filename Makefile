@@ -1,4 +1,4 @@
-.PHONY: build test lint clean run install-deps
+.PHONY: build test lint clean run install-deps benchmark loadtest profile
 
 # Binary name
 BINARY_NAME=logaggregator
@@ -9,6 +9,12 @@ build:
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p $(BUILD_DIR)
 	go build -v -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/logaggregator
+
+# Build load test tool
+build-loadtest:
+	@echo "Building loadtest tool..."
+	@mkdir -p $(BUILD_DIR)
+	go build -v -o $(BUILD_DIR)/loadtest ./cmd/loadtest
 
 # Run tests
 test:
@@ -64,16 +70,53 @@ install: build
 	@echo "Installing $(BINARY_NAME) to $(GOPATH)/bin..."
 	cp $(BUILD_DIR)/$(BINARY_NAME) $(GOPATH)/bin/
 
+# Run benchmarks
+benchmark:
+	@echo "Running benchmarks..."
+	go test -bench=. -benchmem -benchtime=5s ./internal/benchmark/
+
+# Run benchmarks with profiling
+benchmark-profile:
+	@echo "Running benchmarks with CPU profiling..."
+	@mkdir -p profiles
+	go test -bench=. -benchmem -cpuprofile=profiles/cpu.prof -memprofile=profiles/mem.prof ./internal/benchmark/
+	@echo "Profiles saved to profiles/"
+
+# Run load test
+loadtest: build-loadtest
+	@echo "Running load test..."
+	./$(BUILD_DIR)/loadtest -rate 100000 -duration 60 -workers 4
+
+# Run load test with custom parameters
+loadtest-custom: build-loadtest
+	@echo "Running custom load test..."
+	@echo "Usage: make loadtest-custom RATE=100000 DURATION=60 WORKERS=4"
+	./$(BUILD_DIR)/loadtest -rate $(or $(RATE),100000) -duration $(or $(DURATION),60) -workers $(or $(WORKERS),4)
+
+# Profile the application
+profile:
+	@echo "Starting profiling server on :6060"
+	@echo "Access profiles at http://localhost:6060/debug/pprof/"
+	@echo "CPU profile: go tool pprof http://localhost:6060/debug/pprof/profile?seconds=30"
+	@echo "Heap profile: go tool pprof http://localhost:6060/debug/pprof/heap"
+	@echo "Press Ctrl+C to stop"
+
 help:
 	@echo "Available targets:"
-	@echo "  build         - Build the application"
-	@echo "  test          - Run tests"
-	@echo "  test-coverage - Run tests with coverage report"
-	@echo "  lint          - Run linter"
-	@echo "  clean         - Clean build artifacts"
-	@echo "  run           - Build and run the application"
-	@echo "  install-deps  - Install Go dependencies"
-	@echo "  fmt           - Format code"
-	@echo "  build-all     - Build for multiple platforms"
-	@echo "  install       - Install binary to GOPATH/bin"
-	@echo "  help          - Show this help message"
+	@echo "  build              - Build the application"
+	@echo "  build-loadtest     - Build load test tool"
+	@echo "  test               - Run tests"
+	@echo "  test-coverage      - Run tests with coverage report"
+	@echo "  benchmark          - Run performance benchmarks"
+	@echo "  benchmark-profile  - Run benchmarks with profiling"
+	@echo "  loadtest           - Run load test (100K events/sec for 60s)"
+	@echo "  loadtest-custom    - Run custom load test (set RATE, DURATION, WORKERS)"
+	@echo "  profile            - Show profiling instructions"
+	@echo "  lint               - Run linter"
+	@echo "  clean              - Clean build artifacts"
+	@echo "  run                - Build and run the application"
+	@echo "  install-deps       - Install Go dependencies"
+	@echo "  fmt                - Format code"
+	@echo "  build-all          - Build for multiple platforms"
+	@echo "  install            - Install binary to GOPATH/bin"
+	@echo "  help               - Show this help message"
