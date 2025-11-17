@@ -10,16 +10,19 @@ import (
 
 // Config represents the main configuration
 type Config struct {
-	Inputs       InputsConfig      `yaml:"inputs"`
-	Logging      LoggingConfig     `yaml:"logging"`
-	Output       OutputConfig      `yaml:"output"`
-	Parser       *ParserConfig     `yaml:"parser,omitempty"`
-	Transforms   []TransformConfig `yaml:"transforms,omitempty"`
-	Buffer       *BufferConfig     `yaml:"buffer,omitempty"`
-	WAL          *WALConfig        `yaml:"wal,omitempty"`
-	WorkerPool   *WorkerPoolConfig `yaml:"worker_pool,omitempty"`
+	Inputs       InputsConfig       `yaml:"inputs"`
+	Logging      LoggingConfig      `yaml:"logging"`
+	Output       OutputConfig       `yaml:"output"`
+	Parser       *ParserConfig      `yaml:"parser,omitempty"`
+	Transforms   []TransformConfig  `yaml:"transforms,omitempty"`
+	Buffer       *BufferConfig      `yaml:"buffer,omitempty"`
+	WAL          *WALConfig         `yaml:"wal,omitempty"`
+	WorkerPool   *WorkerPoolConfig  `yaml:"worker_pool,omitempty"`
 	Reliability  *ReliabilityConfig `yaml:"reliability,omitempty"`
-	DeadLetter   *DeadLetterConfig `yaml:"dead_letter,omitempty"`
+	DeadLetter   *DeadLetterConfig  `yaml:"dead_letter,omitempty"`
+	Metrics      *MetricsConfig     `yaml:"metrics,omitempty"`
+	Health       *HealthConfig      `yaml:"health,omitempty"`
+	Tracing      *TracingConfig     `yaml:"tracing,omitempty"`
 }
 
 // InputsConfig defines input sources
@@ -227,6 +230,49 @@ type DeadLetterConfig struct {
 	MaxSize       int64         `yaml:"max_size,omitempty"`
 	MaxAge        time.Duration `yaml:"max_age,omitempty"`
 	FlushInterval time.Duration `yaml:"flush_interval,omitempty"`
+}
+
+// MetricsConfig holds metrics configuration
+type MetricsConfig struct {
+	Enabled    bool                      `yaml:"enabled"`
+	Address    string                    `yaml:"address"`
+	Path       string                    `yaml:"path,omitempty"`
+	Extraction *MetricsExtractionConfig  `yaml:"extraction,omitempty"`
+}
+
+// MetricsExtractionConfig holds configuration for extracting metrics from logs
+type MetricsExtractionConfig struct {
+	Enabled bool                  `yaml:"enabled"`
+	Rules   []MetricExtractionRule `yaml:"rules,omitempty"`
+}
+
+// MetricExtractionRule defines a single metric extraction rule
+type MetricExtractionRule struct {
+	Name        string            `yaml:"name"`
+	Type        string            `yaml:"type"` // counter, gauge, histogram
+	Field       string            `yaml:"field"`
+	Pattern     string            `yaml:"pattern,omitempty"`
+	Labels      map[string]string `yaml:"labels,omitempty"`
+	LabelFields map[string]string `yaml:"label_fields,omitempty"`
+	Help        string            `yaml:"help"`
+	Buckets     []float64         `yaml:"buckets,omitempty"`
+}
+
+// HealthConfig holds health check configuration
+type HealthConfig struct {
+	Enabled      bool          `yaml:"enabled"`
+	Address      string        `yaml:"address"`
+	LivenessPath string        `yaml:"liveness_path,omitempty"`
+	ReadinessPath string       `yaml:"readiness_path,omitempty"`
+	Timeout      time.Duration `yaml:"timeout,omitempty"`
+}
+
+// TracingConfig holds tracing configuration
+type TracingConfig struct {
+	Enabled      bool    `yaml:"enabled"`
+	Endpoint     string  `yaml:"endpoint,omitempty"`
+	SampleRate   float64 `yaml:"sample_rate,omitempty"`
+	EnableStdout bool    `yaml:"enable_stdout,omitempty"`
 }
 
 // Default values

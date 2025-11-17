@@ -1,0 +1,139 @@
+# Log Aggregator Configuration - Phase 6 Example
+# This configuration demonstrates metrics, health checks, and tracing features
+
+# Input configuration
+inputs:
+  files:
+    - paths:
+        - /var/log/app.log
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+      parser:
+        type: json
+        time_field: timestamp
+        level_field: level
+        message_field: msg
+
+  http:
+    - name: http-api
+      address: "0.0.0.0:8080"
+      path: "/log"
+      batch_path: "/logs"
+      api_keys:
+        - "${HTTP_API_KEY}"
+      rate_limit: 100
+      parser:
+        type: json
+
+# Logging configuration
+logging:
+  level: info
+  format: json
+
+# Output configuration
+output:
+  type: kafka
+  kafka:
+    brokers:
+      - "localhost:9092"
+    topic: "logs"
+    batch_size: 100
+    batch_timeout: 5s
+
+# Metrics configuration
+metrics:
+  enabled: true
+  address: "0.0.0.0:9090"
+  path: "/metrics"
+
+  # Optional: Extract metrics from log content
+  extraction:
+    enabled: true
+    rules:
+      # Extract HTTP response time metrics
+      - name: http_response_time
+        type: histogram
+        field: response_time_ms
+        help: "HTTP response time in milliseconds"
+        buckets: [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
+        label_fields:
+          method: http_method
+          status: http_status
+          path: http_path
+
+      # Count HTTP requests
+      - name: http_requests
+        type: counter
+        field: request_count
+        help: "Total number of HTTP requests"
+        label_fields:
+          method: http_method
+          status: http_status
+
+      # Track error counts
+      - name: application_errors
+        type: counter
+        field: error_count
+        help: "Application error count"
+        label_fields:
+          level: level
+          error_type: error_type
+
+# Health check configuration
+health:
+  enabled: true
+  address: "0.0.0.0:8081"
+  liveness_path: "/health/live"
+  readiness_path: "/health/ready"
+  timeout: 5s
+
+# Tracing configuration
+tracing:
+  enabled: true
+  endpoint: "localhost:4317"  # OTLP gRPC endpoint (e.g., Jaeger, Tempo)
+  sample_rate: 0.1  # Sample 10% of traces
+  enable_stdout: false
+
+# Buffer configuration
+buffer:
+  type: memory
+  size: 10000
+  backpressure_strategy: block
+  block_timeout: 5s
+
+# Write-Ahead Log configuration
+wal:
+  enabled: true
+  dir: /tmp/logaggregator/wal
+  segment_size: 104857600  # 100MB
+  max_segments: 10
+  sync_interval: 1s
+
+# Worker pool configuration
+worker_pool:
+  num_workers: 4
+  queue_size: 1000
+  job_timeout: 30s
+
+# Reliability configuration
+reliability:
+  retry:
+    max_retries: 3
+    initial_backoff: 1s
+    max_backoff: 30s
+    multiplier: 2.0
+    jitter: true
+
+  circuit_breaker:
+    max_requests: 10
+    interval: 60s
+    timeout: 30s
+    failure_threshold: 5
+
+# Dead letter queue configuration
+dead_letter:
+  enabled: true
+  dir: /tmp/logaggregator/dlq
+  max_size: 1073741824  # 1GB
+  max_age: 168h  # 7 days
+  flush_interval: 10s
