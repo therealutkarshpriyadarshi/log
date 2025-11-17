@@ -1,0 +1,178 @@
+{
+  "dashboard": {
+    "title": "Log Aggregator - Performance",
+    "tags": ["logaggregator", "performance"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Output Latency (p99)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, rate(logaggregator_output_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{output_name}} - {{output_type}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Latency"},
+          {"format": "short"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [0.1], "type": "gt"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"type": "avg"}
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "High Output Latency (>100ms)",
+          "noDataState": "no_data"
+        }
+      },
+      {
+        "id": 2,
+        "title": "Output Latency (p50/p95/p99)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(logaggregator_output_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "p99"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(logaggregator_output_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(logaggregator_output_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "p50"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Latency"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Parser Latency (p99)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, rate(logaggregator_parser_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{parser_type}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Latency"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Worker Job Duration",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, rate(logaggregator_worker_pool_job_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99 {{pool_name}}"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(logaggregator_worker_pool_job_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50 {{pool_name}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "WAL Write Latency",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, rate(logaggregator_wal_write_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99 {{wal_dir}}"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(logaggregator_wal_write_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50 {{wal_dir}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Latency"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Batch Size Distribution",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, rate(logaggregator_output_batch_size_bucket[5m]))",
+            "legendFormat": "p99 {{output_name}}"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(logaggregator_output_batch_size_bucket[5m]))",
+            "legendFormat": "p50 {{output_name}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Batch Size"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 7,
+        "title": "System Goroutines",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "logaggregator_system_goroutines_total",
+            "legendFormat": "Goroutines"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Count"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 8,
+        "title": "GC Pause Time",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, rate(logaggregator_system_gc_pause_seconds_bucket[5m]))",
+            "legendFormat": "p99"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(logaggregator_system_gc_pause_seconds_bucket[5m]))",
+            "legendFormat": "p50"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      }
+    ],
+    "refresh": "10s",
+    "time": {"from": "now-1h", "to": "now"},
+    "version": 1
+  }
+}

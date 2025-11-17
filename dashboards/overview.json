@@ -1,0 +1,196 @@
+{
+  "dashboard": {
+    "title": "Log Aggregator - Overview",
+    "tags": ["logaggregator", "overview"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Events Received (Total)",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(logaggregator_input_events_received_total[5m]))",
+            "legendFormat": "Events/sec"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "decimals": 2
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Events Sent (Total)",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(logaggregator_output_events_sent_total[5m]))",
+            "legendFormat": "Events/sec"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "decimals": 2
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Parser Errors",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(logaggregator_parser_events_failed_total[5m]))",
+            "legendFormat": "Errors/sec"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "decimals": 2,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 10, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "System Health",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "targets": [
+          {
+            "expr": "min(logaggregator_health_status)",
+            "legendFormat": "Health"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "background"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"value": 1, "text": "Healthy", "color": "green"},
+              {"value": 0, "text": "Unhealthy", "color": "red"}
+            ]
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Event Throughput by Input",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "targets": [
+          {
+            "expr": "rate(logaggregator_input_events_received_total[5m])",
+            "legendFormat": "{{input_name}} ({{input_type}})"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Events/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Event Throughput by Output",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "targets": [
+          {
+            "expr": "rate(logaggregator_output_events_sent_total[5m])",
+            "legendFormat": "{{output_name}} ({{output_type}})"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Events/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Buffer Utilization",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "targets": [
+          {
+            "expr": "logaggregator_buffer_utilization_ratio",
+            "legendFormat": "{{buffer_type}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "percentunit", "label": "Utilization", "max": 1, "min": 0},
+          {"format": "short"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [0.9], "type": "gt"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"type": "avg"}
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "High Buffer Utilization",
+          "noDataState": "no_data"
+        }
+      },
+      {
+        "id": 8,
+        "title": "Parser Performance",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, rate(logaggregator_parser_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99 {{parser_type}}"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(logaggregator_parser_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95 {{parser_type}}"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(logaggregator_parser_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50 {{parser_type}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      }
+    ],
+    "refresh": "10s",
+    "time": {"from": "now-1h", "to": "now"},
+    "version": 1
+  }
+}

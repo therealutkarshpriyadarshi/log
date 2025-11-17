@@ -1,0 +1,216 @@
+{
+  "dashboard": {
+    "title": "Log Aggregator - Errors & Resources",
+    "tags": ["logaggregator", "errors", "resources"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Parser Errors",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(logaggregator_parser_events_failed_total[5m])",
+            "legendFormat": "{{parser_type}} - {{reason}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Errors/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Output Errors",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(logaggregator_output_events_failed_total[5m])",
+            "legendFormat": "{{output_name}} - {{reason}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Errors/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Buffer Drops",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(logaggregator_buffer_events_dropped_total[5m])",
+            "legendFormat": "{{buffer_type}} - {{backpressure_strategy}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Drops/sec"},
+          {"format": "short"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [1], "type": "gt"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"type": "avg"}
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "Buffer Drops Detected",
+          "noDataState": "no_data"
+        }
+      },
+      {
+        "id": 4,
+        "title": "Input Drops",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(logaggregator_input_events_dropped_total[5m])",
+            "legendFormat": "{{input_name}} - {{reason}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Drops/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Dead Letter Queue",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(logaggregator_dlq_events_written_total[5m])",
+            "legendFormat": "DLQ writes/sec"
+          },
+          {
+            "expr": "logaggregator_dlq_size_bytes",
+            "legendFormat": "DLQ size"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Rate/Size"},
+          {"format": "bytes"}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Circuit Breaker State",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "logaggregator_circuit_breaker_state",
+            "legendFormat": "{{name}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "State (0=closed, 1=open, 2=half-open)"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Memory Usage",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "logaggregator_system_memory_allocated_bytes",
+            "legendFormat": "Heap Allocated"
+          },
+          {
+            "expr": "logaggregator_system_memory_system_bytes",
+            "legendFormat": "System Memory"
+          }
+        ],
+        "yaxes": [
+          {"format": "bytes", "label": "Memory"},
+          {"format": "short"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [524288000], "type": "gt"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"type": "avg"}
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "High Memory Usage (>500MB)",
+          "noDataState": "no_data"
+        }
+      },
+      {
+        "id": 8,
+        "title": "Worker Pool Stats",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [
+          {
+            "expr": "logaggregator_worker_pool_workers_total",
+            "legendFormat": "Workers - {{pool_name}}"
+          },
+          {
+            "expr": "rate(logaggregator_worker_pool_jobs_total[5m])",
+            "legendFormat": "Jobs - {{pool_name}} - {{status}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Count/Rate"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 9,
+        "title": "WAL Stats",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+        "targets": [
+          {
+            "expr": "logaggregator_wal_segments_total",
+            "legendFormat": "Segments - {{wal_dir}}"
+          },
+          {
+            "expr": "rate(logaggregator_wal_write_bytes_total[5m])",
+            "legendFormat": "Write rate - {{wal_dir}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Count/Rate"},
+          {"format": "Bps"}
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Component Health",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+        "targets": [
+          {
+            "expr": "logaggregator_health_status",
+            "legendFormat": "{{component}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Status (1=healthy, 0=unhealthy)", "max": 1, "min": 0},
+          {"format": "short"}
+        ]
+      }
+    ],
+    "refresh": "10s",
+    "time": {"from": "now-1h", "to": "now"},
+    "version": 1
+  }
+}

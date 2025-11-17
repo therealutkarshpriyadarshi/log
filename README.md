@@ -583,7 +583,7 @@ export HTTP_API_KEY=secret-key-123
 
 ## Roadmap
 
-**Current Status**: **Phase 5 Complete** ✅
+**Current Status**: **Phase 6 Complete** ✅
 
 See [ROADMAP.md](ROADMAP.md) for the complete development plan.
 
@@ -594,10 +594,10 @@ See [ROADMAP.md](ROADMAP.md) for the complete development plan.
 - ✅ **Phase 3**: Buffering & Reliability - Ring buffer, WAL, worker pool, retry, circuit breaker, DLQ
 - ✅ **Phase 4**: Output Destinations - Kafka, Elasticsearch, S3, multi-output routing
 - ✅ **Phase 5**: Advanced Inputs - Syslog, HTTP, Kubernetes pod logs
+- ✅ **Phase 6**: Metrics & Observability - Prometheus, health checks, tracing, Grafana dashboards
 
 ### Upcoming Phases
 
-- **Phase 6**: Metrics & observability (Prometheus, Grafana)
 - **Phase 7**: Performance optimization
 - **Phase 8**: Production readiness
 
