@@ -1,0 +1,272 @@
+# Phase 3 Configuration Example: Buffering & Reliability
+# This configuration demonstrates all Phase 3 features:
+# - Memory-backed ring buffer with backpressure handling
+# - Write-Ahead Log (WAL) for durability
+# - Worker pool for concurrent processing
+# - Retry logic with exponential backoff
+# - Circuit breaker pattern
+# - Dead letter queue for failed events
+
+inputs:
+  files:
+    - paths:
+        - /var/log/app.log
+        - /var/log/app.*.log
+      checkpoint_path: /tmp/logaggregator/checkpoints
+      checkpoint_interval: 5s
+
+      # Phase 2: Parser configuration
+      parser:
+        type: json
+        time_field: timestamp
+        level_field: level
+        message_field: message
+
+      # Phase 2: Transformations
+      transforms:
+        - type: filter
+          exclude_fields:
+            - password
+            - api_key
+            - secret
+        - type: add
+          add:
+            environment: production
+            datacenter: us-east-1
+
+# Phase 3: Buffer configuration
+buffer:
+  type: memory
+  size: 10000
+  backpressure_strategy: block  # Options: block, drop, sample
+  sample_rate: 10                # Keep 1 out of 10 when sampling
+  block_timeout: 5s              # Timeout when blocking
+
+# Phase 3: Write-Ahead Log (WAL) for durability
+wal:
+  enabled: true
+  dir: /var/lib/logaggregator/wal
+  segment_size: 67108864          # 64 MB
+  max_segments: 100
+  sync_interval: 1s
+  compaction_policy: size         # Options: size, time, manual
+
+# Phase 3: Worker pool for concurrent processing
+worker_pool:
+  num_workers: 8
+  queue_size: 5000
+  job_timeout: 30s
+  enable_stealing: false
+
+# Phase 3: Reliability configuration
+reliability:
+  # Retry with exponential backoff
+  retry:
+    max_retries: 3
+    initial_backoff: 100ms
+    max_backoff: 30s
+    multiplier: 2.0
+    jitter: true
+
+  # Circuit breaker pattern
+  circuit_breaker:
+    max_requests: 10
+    interval: 60s
+    timeout: 60s
+    failure_threshold: 5
+
+# Phase 3: Dead letter queue for failed events
+dead_letter:
+  enabled: true
+  dir: /var/lib/logaggregator/dlq
+  max_size: 10000
+  max_age: 24h
+  flush_interval: 5s
+
+# Logging configuration
+logging:
+  level: info   # Options: debug, info, warn, error, fatal
+  format: json  # Options: json, console
+
+# Output configuration
+output:
+  type: stdout
+
+---
+
+# Example 2: High-throughput configuration with aggressive backpressure
+
+inputs:
+  files:
+    - paths:
+        - /var/log/high-volume.log
+      checkpoint_path: /tmp/checkpoints
+      checkpoint_interval: 1s
+
+buffer:
+  type: memory
+  size: 100000
+  backpressure_strategy: drop  # Drop oldest events when full
+  block_timeout: 1s
+
+wal:
+  enabled: true
+  dir: /var/lib/wal
+  segment_size: 134217728       # 128 MB
+  max_segments: 50
+  sync_interval: 500ms
+
+worker_pool:
+  num_workers: 16               # More workers for high throughput
+  queue_size: 10000
+  job_timeout: 10s
+
+reliability:
+  retry:
+    max_retries: 5
+    initial_backoff: 50ms
+    max_backoff: 10s
+    multiplier: 1.5
+    jitter: true
+
+  circuit_breaker:
+    max_requests: 100
+    interval: 30s
+    timeout: 30s
+    failure_threshold: 10
+
+dead_letter:
+  enabled: true
+  dir: /var/lib/dlq
+  max_size: 50000
+  max_age: 48h
+
+logging:
+  level: warn
+  format: json
+
+output:
+  type: stdout
+
+---
+
+# Example 3: Conservative configuration with sampling
+
+inputs:
+  files:
+    - paths:
+        - /var/log/*.log
+      checkpoint_path: /tmp/checkpoints
+      checkpoint_interval: 10s
+
+buffer:
+  type: memory
+  size: 5000
+  backpressure_strategy: sample  # Sample events when overwhelmed
+  sample_rate: 5                 # Keep 1 out of 5
+  block_timeout: 2s
+
+wal:
+  enabled: true
+  dir: /var/lib/wal
+  segment_size: 33554432         # 32 MB
+  max_segments: 20
+  sync_interval: 2s
+
+worker_pool:
+  num_workers: 4
+  queue_size: 2000
+  job_timeout: 60s
+
+reliability:
+  retry:
+    max_retries: 2
+    initial_backoff: 200ms
+    max_backoff: 5s
+    multiplier: 2.0
+
+  circuit_breaker:
+    max_requests: 5
+    interval: 120s
+    timeout: 120s
+    failure_threshold: 3
+
+dead_letter:
+  enabled: true
+  dir: /var/lib/dlq
+  max_size: 5000
+  max_age: 12h
+  flush_interval: 10s
+
+logging:
+  level: debug
+  format: console
+
+output:
+  type: stdout
+
+---
+
+# Example 4: Minimal configuration (Phase 3 features disabled)
+
+inputs:
+  files:
+    - paths:
+        - /var/log/app.log
+      checkpoint_path: /tmp/checkpoints
+
+# All Phase 3 features are optional
+# If not specified, the system runs without buffering, WAL, etc.
+
+logging:
+  level: info
+  format: json
+
+output:
+  type: stdout
+
+---
+
+# Example 5: Development/testing configuration
+
+inputs:
+  files:
+    - paths:
+        - /tmp/test.log
+      checkpoint_path: /tmp/checkpoints
+      checkpoint_interval: 1s
+
+buffer:
+  type: memory
+  size: 100
+  backpressure_strategy: block
+
+wal:
+  enabled: false  # Disable WAL for faster development
+
+worker_pool:
+  num_workers: 2
+  queue_size: 100
+  job_timeout: 5s
+
+reliability:
+  retry:
+    max_retries: 1
+    initial_backoff: 10ms
+
+  circuit_breaker:
+    max_requests: 3
+    timeout: 5s
+    failure_threshold: 2
+
+dead_letter:
+  enabled: true
+  dir: /tmp/dlq
+  max_size: 100
+
+logging:
+  level: debug
+  format: console
+
+output:
+  type: stdout

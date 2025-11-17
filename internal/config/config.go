@@ -10,11 +10,16 @@ import (
 
 // Config represents the main configuration
 type Config struct {
-	Inputs     InputsConfig     `yaml:"inputs"`
-	Logging    LoggingConfig    `yaml:"logging"`
-	Output     OutputConfig     `yaml:"output"`
-	Parser     *ParserConfig    `yaml:"parser,omitempty"`
-	Transforms []TransformConfig `yaml:"transforms,omitempty"`
+	Inputs       InputsConfig      `yaml:"inputs"`
+	Logging      LoggingConfig     `yaml:"logging"`
+	Output       OutputConfig      `yaml:"output"`
+	Parser       *ParserConfig     `yaml:"parser,omitempty"`
+	Transforms   []TransformConfig `yaml:"transforms,omitempty"`
+	Buffer       *BufferConfig     `yaml:"buffer,omitempty"`
+	WAL          *WALConfig        `yaml:"wal,omitempty"`
+	WorkerPool   *WorkerPoolConfig `yaml:"worker_pool,omitempty"`
+	Reliability  *ReliabilityConfig `yaml:"reliability,omitempty"`
+	DeadLetter   *DeadLetterConfig `yaml:"dead_letter,omitempty"`
 }
 
 // InputsConfig defines input sources
@@ -77,6 +82,65 @@ type LoggingConfig struct {
 type OutputConfig struct {
 	Type string `yaml:"type"` // stdout, file, kafka, etc.
 	Path string `yaml:"path,omitempty"`
+}
+
+// BufferConfig holds buffer configuration
+type BufferConfig struct {
+	Type                 string        `yaml:"type"` // memory, disk
+	Size                 int           `yaml:"size"`
+	BackpressureStrategy string        `yaml:"backpressure_strategy"` // block, drop, sample
+	SampleRate           int           `yaml:"sample_rate,omitempty"`
+	BlockTimeout         time.Duration `yaml:"block_timeout,omitempty"`
+}
+
+// WALConfig holds Write-Ahead Log configuration
+type WALConfig struct {
+	Enabled          bool          `yaml:"enabled"`
+	Dir              string        `yaml:"dir"`
+	SegmentSize      int64         `yaml:"segment_size,omitempty"`
+	MaxSegments      int           `yaml:"max_segments,omitempty"`
+	SyncInterval     time.Duration `yaml:"sync_interval,omitempty"`
+	CompactionPolicy string        `yaml:"compaction_policy,omitempty"`
+}
+
+// WorkerPoolConfig holds worker pool configuration
+type WorkerPoolConfig struct {
+	NumWorkers     int           `yaml:"num_workers"`
+	QueueSize      int           `yaml:"queue_size,omitempty"`
+	JobTimeout     time.Duration `yaml:"job_timeout,omitempty"`
+	EnableStealing bool          `yaml:"enable_stealing,omitempty"`
+}
+
+// ReliabilityConfig holds retry and circuit breaker configuration
+type ReliabilityConfig struct {
+	Retry         *RetryConfig         `yaml:"retry,omitempty"`
+	CircuitBreaker *CircuitBreakerConfig `yaml:"circuit_breaker,omitempty"`
+}
+
+// RetryConfig holds retry configuration
+type RetryConfig struct {
+	MaxRetries     int           `yaml:"max_retries"`
+	InitialBackoff time.Duration `yaml:"initial_backoff,omitempty"`
+	MaxBackoff     time.Duration `yaml:"max_backoff,omitempty"`
+	Multiplier     float64       `yaml:"multiplier,omitempty"`
+	Jitter         bool          `yaml:"jitter,omitempty"`
+}
+
+// CircuitBreakerConfig holds circuit breaker configuration
+type CircuitBreakerConfig struct {
+	MaxRequests        uint32        `yaml:"max_requests,omitempty"`
+	Interval           time.Duration `yaml:"interval,omitempty"`
+	Timeout            time.Duration `yaml:"timeout,omitempty"`
+	FailureThreshold   uint32        `yaml:"failure_threshold,omitempty"`
+}
+
+// DeadLetterConfig holds dead letter queue configuration
+type DeadLetterConfig struct {
+	Enabled       bool          `yaml:"enabled"`
+	Dir           string        `yaml:"dir"`
+	MaxSize       int64         `yaml:"max_size,omitempty"`
+	MaxAge        time.Duration `yaml:"max_age,omitempty"`
+	FlushInterval time.Duration `yaml:"flush_interval,omitempty"`
 }
 
 // Default values
