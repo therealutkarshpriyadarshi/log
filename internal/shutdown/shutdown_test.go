@@ -32,9 +32,7 @@ func TestRegisterFunc(t *testing.T) {
 	logger := logging.New(logging.Config{Level: "info", Format: "json"})
 	manager := New(Config{Logger: logger})
 
-	called := false
 	fn := func(ctx context.Context) error {
-		called = true
 		return nil
 	}
 
