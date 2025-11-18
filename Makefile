@@ -1,4 +1,4 @@
-.PHONY: build test lint clean run install-deps benchmark loadtest profile
+.PHONY: build test lint clean run install-deps benchmark loadtest profile test-unit test-integration test-e2e test-chaos test-all docker-test-up docker-test-down
 
 # Binary name
 BINARY_NAME=logaggregator
@@ -101,22 +101,81 @@ profile:
 	@echo "Heap profile: go tool pprof http://localhost:6060/debug/pprof/heap"
 	@echo "Press Ctrl+C to stop"
 
+# Test targets
+test-unit:
+	@echo "Running unit tests..."
+	@./scripts/test-unit.sh
+
+test-integration:
+	@echo "Running integration tests..."
+	@./scripts/test-integration.sh
+
+test-e2e:
+	@echo "Running E2E tests..."
+	@./scripts/test-e2e.sh
+
+test-chaos:
+	@echo "Running chaos tests..."
+	@./scripts/test-chaos.sh
+
+test-load:
+	@echo "Running load tests..."
+	@./scripts/test-load.sh
+
+test-all:
+	@echo "Running all tests..."
+	@./scripts/test-all.sh
+
+# Docker test infrastructure
+docker-test-up:
+	@echo "Starting test infrastructure..."
+	docker-compose -f docker-compose.test.yml up -d
+
+docker-test-down:
+	@echo "Stopping test infrastructure..."
+	docker-compose -f docker-compose.test.yml down -v
+
+docker-test-logs:
+	@echo "Showing test infrastructure logs..."
+	docker-compose -f docker-compose.test.yml logs -f
+
 help:
 	@echo "Available targets:"
+	@echo ""
+	@echo "Build:"
 	@echo "  build              - Build the application"
 	@echo "  build-loadtest     - Build load test tool"
-	@echo "  test               - Run tests"
-	@echo "  test-coverage      - Run tests with coverage report"
+	@echo "  build-all          - Build for multiple platforms"
+	@echo "  install            - Install binary to GOPATH/bin"
+	@echo ""
+	@echo "Testing:"
+	@echo "  test               - Run unit tests"
+	@echo "  test-unit          - Run unit tests with coverage"
+	@echo "  test-integration   - Run integration tests with real services"
+	@echo "  test-e2e           - Run E2E tests with full stack"
+	@echo "  test-chaos         - Run chaos engineering tests"
+	@echo "  test-load          - Run load tests"
+	@echo "  test-all           - Run complete test suite"
+	@echo "  test-coverage      - Generate coverage report"
+	@echo ""
+	@echo "Docker Testing:"
+	@echo "  docker-test-up     - Start test infrastructure"
+	@echo "  docker-test-down   - Stop test infrastructure"
+	@echo "  docker-test-logs   - Show test infrastructure logs"
+	@echo ""
+	@echo "Performance:"
 	@echo "  benchmark          - Run performance benchmarks"
 	@echo "  benchmark-profile  - Run benchmarks with profiling"
 	@echo "  loadtest           - Run load test (100K events/sec for 60s)"
 	@echo "  loadtest-custom    - Run custom load test (set RATE, DURATION, WORKERS)"
 	@echo "  profile            - Show profiling instructions"
+	@echo ""
+	@echo "Code Quality:"
 	@echo "  lint               - Run linter"
-	@echo "  clean              - Clean build artifacts"
+	@echo "  fmt                - Format code"
+	@echo ""
+	@echo "Other:"
 	@echo "  run                - Build and run the application"
 	@echo "  install-deps       - Install Go dependencies"
-	@echo "  fmt                - Format code"
-	@echo "  build-all          - Build for multiple platforms"
-	@echo "  install            - Install binary to GOPATH/bin"
+	@echo "  clean              - Clean build artifacts"
 	@echo "  help               - Show this help message"

@@ -1,0 +1,107 @@
+# Test configuration for log aggregator
+inputs:
+  - type: http
+    port: 8080
+    path: /logs
+    rate_limit: 10000
+
+  - type: syslog
+    protocol: udp
+    port: 514
+    rate_limit: 5000
+
+parsers:
+  - type: json
+    name: json-parser
+
+  - type: regex
+    name: apache-parser
+    pattern: '^(?P<ip>\S+) \S+ \S+ \[(?P<timestamp>[^\]]+)\] "(?P<method>\S+) (?P<path>\S+) \S+" (?P<status>\d+) (?P<size>\d+)'
+
+  - type: grok
+    name: syslog-parser
+    pattern: '%{SYSLOGTIMESTAMP:timestamp} %{SYSLOGHOST:hostname} %{DATA:program}(?:\[%{POSINT:pid}\])?: %{GREEDYDATA:message}'
+
+transformers:
+  - type: add_field
+    field: environment
+    value: test
+
+  - type: add_timestamp
+    field: processed_at
+
+  - type: remove_field
+    field: _raw
+
+outputs:
+  - type: kafka
+    brokers:
+      - kafka:9092
+    topic: logs
+    batch_size: 100
+    batch_timeout: 1s
+    compression: snappy
+
+  - type: elasticsearch
+    url: http://elasticsearch:9200
+    index: logs-test
+    batch_size: 100
+    batch_timeout: 1s
+
+  - type: s3
+    endpoint: http://minio:9000
+    access_key: minioadmin
+    secret_key: minioadmin
+    bucket: logs
+    region: us-east-1
+    prefix: test/
+    batch_size: 1000
+    batch_timeout: 10s
+    force_path_style: true
+
+buffer:
+  type: ring
+  size: 100000
+
+worker_pool:
+  min_workers: 4
+  max_workers: 16
+  queue_size: 10000
+
+reliability:
+  enable_wal: true
+  wal_dir: /tmp/wal
+  enable_dlq: true
+  dlq_dir: /tmp/dlq
+  max_retries: 3
+  circuit_breaker:
+    enabled: true
+    threshold: 5
+    timeout: 30s
+
+health:
+  port: 8081
+  path: /health
+
+metrics:
+  enabled: true
+  port: 9090
+  path: /metrics
+
+tracing:
+  enabled: true
+  exporter: otlp
+  endpoint: http://jaeger:4317
+  sampling_rate: 1.0
+
+logging:
+  level: debug
+  format: json
+  output: stdout
+
+security:
+  enable_tls: false
+  rate_limiting:
+    enabled: true
+    requests_per_second: 10000
+    burst: 20000
